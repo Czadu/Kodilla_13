@@ -1,0 +1,57 @@
+import pandas as pd
+from sqlalchemy import Table, Column, Integer, String, MetaData, DateTime, Float
+from sqlalchemy import create_engine
+
+
+
+engine_1 = create_engine('sqlite:///measures_stations.db')
+
+meta = MetaData()
+
+measures = Table(
+   'measures', meta,
+   Column('station', String),
+   Column('date', String),
+   Column('precip', Float),
+   Column('tobs', Integer),
+)
+
+stations = Table(
+   'stations', meta,
+   Column('station', String),
+   Column('latitude', Float),
+   Column('longitude', Float),
+   Column('elevation', Float),
+   Column('name', String),
+   Column('country', String),
+   Column('state', String),
+)
+
+meta.create_all(engine_1)
+
+measures_df = pd.read_csv('clean_measure.csv')
+stations_df = pd.read_csv('clean_stations.csv')
+
+measures_df.to_sql('measures', engine_1, if_exists='append', index=False)
+stations_df.to_sql('stations', engine_1, if_exists='append', index=False)
+
+
+with engine_1.connect() as conn:
+
+    result = conn.execute("SELECT * FROM stations LIMIT 5")
+    print("First 5 rows of the stations table:")
+    for row in result:
+        print(row)
+
+    result = conn.execute("SELECT * FROM measures ORDER BY date DESC LIMIT 5")
+    print("\nLast 5 rows of the measures table:")
+    for row in result:
+        print(row)
+
+    result = conn.execute("SELECT COUNT(*) FROM stations")
+    print("\nTotal rows in stations table:", result.scalar())
+    result = conn.execute("SELECT COUNT(*) FROM measures")
+    print("Total rows in measures table:", result.scalar())
+
+    result = conn.execute("SELECT AVG(elevation) FROM stations")
+    print("\nAverage elevation in stations table:", result.scalar())
